@@ -1,0 +1,101 @@
+import datetime
+import subprocess
+import webbrowser
+from hardware.arduino import connect, send
+from core.hardware_ai import parse_hardware_command
+
+connect()
+
+
+def process_command(command):
+    command = command.lower().strip()
+
+    # AI → Arduino hardware control
+    hardware = parse_hardware_command(command)
+
+    if hardware.get("action") == "led":
+        target = hardware.get("target")
+        state = hardware.get("state")
+
+        if target in {"1", "2", "3"} and state in {"on", "off"}:
+            if send(f"led {target} {state}"):
+                return f"LED {target} turned {state}, Boss."
+            return "Arduino is not connected, Boss."
+
+        if target == "all" and state in {"on", "off"}:
+            if send(f"all {state}"):
+                return f"All LEDs turned {state}, Boss."
+            return "Arduino is not connected, Boss."
+
+    # ---------------- LED CONTROL ----------------
+
+    # All LEDs
+    if "all" in command and "led" in command:
+        if "on" in command:
+            if send("all on"):
+                return "All LEDs turned on, Boss."
+            return "Arduino is not connected, Boss."
+
+        if "off" in command:
+            if send("all off"):
+                return "All LEDs turned off, Boss."
+            return "Arduino is not connected, Boss."
+
+    # Individual LEDs
+    led_number = None
+
+    if "led 1" in command or "led one" in command or "first led" in command or "first light" in command:
+        led_number = 1
+
+    elif "led 2" in command or "led two" in command or "second led" in command or "second light" in command:
+        led_number = 2
+
+    elif "led 3" in command or "led three" in command or "third led" in command or "third light" in command:
+        led_number = 3
+
+    if led_number is not None:
+        if "on" in command:
+            if send(f"led {led_number} on"):
+                return f"LED {led_number} turned on, Boss."
+            return "Arduino is not connected, Boss."
+
+        if "off" in command:
+            if send(f"led {led_number} off"):
+                return f"LED {led_number} turned off, Boss."
+            return "Arduino is not connected, Boss."
+
+    # ---------------- TIME ----------------
+
+    if "time" in command:
+        return datetime.datetime.now().strftime("The time is %I:%M %p.")
+
+    # ---------------- DATE ----------------
+
+    if "date" in command:
+        return datetime.datetime.now().strftime("Today is %A, %d %B %Y.")
+
+    # ---------------- GREETINGS ----------------
+
+    if command in {"hello", "hi", "hey", "hello jarvis", "hi jarvis"}:
+        return "Hello Boss. JARVIS V4 is online."
+
+    # ---------------- BROWSER ----------------
+
+    if "open browser" in command or "open chrome" in command:
+        subprocess.Popen(["google-chrome"])
+        return "Opening the browser, Boss."
+
+    # ---------------- YOUTUBE ----------------
+
+    if "open youtube" in command:
+        webbrowser.open("https://www.youtube.com")
+        return "Opening YouTube, Boss."
+
+    # ---------------- SHUTDOWN ----------------
+
+    if command in {"exit", "quit", "shutdown", "goodbye"}:
+        return "Shutting down, Boss."
+
+    # ---------------- FALLBACK ----------------
+
+    return f"I heard you say {command}"

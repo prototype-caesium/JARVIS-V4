@@ -1,0 +1,56 @@
+import subprocess
+from pathlib import Path
+
+MODEL = Path(__file__).resolve().parent.parent / "voices" / "en_US-hfc_male-medium.onnx"
+
+class VoiceInfo:
+    name = "Piper HFC Male"
+
+VOICE = VoiceInfo()
+
+
+def speak(text):
+    text = str(text).strip()
+
+    if not text:
+        return
+
+    print(f"JARVIS: {text}")
+
+    piper = subprocess.Popen(
+        [
+            "piper",
+            "--model", str(MODEL),
+            "--length_scale", "0.50",
+            "--sentence_silence", "0.05",
+            "--output_raw",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+
+    aplay = subprocess.Popen(
+        [
+            "aplay",
+            "-q",
+            "-t", "raw",
+            "-r", "22050",
+            "-f", "S16_LE",
+            "-c", "1",
+        ],
+        stdin=piper.stdout,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    piper.stdout.close()
+
+    try:
+        piper.stdin.write((text + "\n").encode("utf-8"))
+        piper.stdin.close()
+    except BrokenPipeError:
+        pass
+
+    aplay.wait()
+    piper.wait()

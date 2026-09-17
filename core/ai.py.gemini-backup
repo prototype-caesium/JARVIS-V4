@@ -1,0 +1,321 @@
+import os
+import json
+from pathlib import Path
+
+from google import genai
+from core.tools import (
+    get_time,
+    get_date,
+    get_system_status,
+    open_website,
+)
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set.")
+
+client = genai.Client(api_key=API_KEY)
+
+MODEL = "gemini-3.5-flash-lite"
+
+BASE_DIR = Path(__file__).resolve().parent
+MEMORY_FILE = BASE_DIR / "memory.json"
+
+history = []
+
+
+SYSTEM_PROMPT = """
+You are JARVIS V4, Boss's personal AI assistant.
+
+PERSONALITY:
+- Intelligent, calm and confident.
+- Natural and slightly witty when appropriate.
+- Address the user as Boss naturally.
+- Your answers are spoken aloud.
+
+VOICE RULES:
+- Keep normal answers to 1-3 short sentences.
+- Give the direct answer first.
+- Avoid unnecessary explanations.
+- Do not use markdown unless specifically requested.
+- Do not repeat the user's question.
+- For simple factual questions, answer in one or two sentences.
+- For complex questions, give the key answer first and only the most useful details.
+
+TOOLS:
+- get_time: current computer time.
+- get_date: current computer date.
+- get_system_status: CPU, RAM, storage and battery.
+- open_website: opens a website in the local browser.
+
+When a local tool can provide the answer, use it.
+Never invent tool results.
+"""
+
+
+TOOLS = [
+    {
+        "type": "function",
+        "name": "get_time",
+        "description": "Get the current local time from the computer.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "type": "function",
+        "name": "get_date",
+        "description": "Get the current local date from the computer.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "type": "function",
+        "name": "get_system_status",
+        "description": (
+            "Get the computer's current CPU usage, RAM usage, "
+            "storage usage and battery status."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {},
+        },
+    },
+    {
+        "type": "function",
+        "name": "open_website",
+        "description": "Open a website in the computer's default browser.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "The complete website URL to open.",
+                }
+            },
+            "required": ["url"],
+        },
+    },
+]
+
+
+TOOL_FUNCTIONS = {
+    "get_time": get_time,
+    "get_date": get_date,
+    "get_system_status": get_system_status,
+    "open_website": open_website,
+}
+
+
+def load_memory():
+    global history
+
+    try:
+        if MEMORY_FILE.exists():
+            data = json.loads(MEMORY_FILE.read_text())
+
+            if isinstance(data, list):
+                history = data[-20:]
+
+    except Exception:
+        history = []
+
+
+def save_memory():
+    try:
+        MEMORY_FILE.write_text(
+            json.dumps(history[-20:], indent=2)
+        )
+    except Exception:
+        pass
+
+
+def execute_tool(name, args):
+    function = TOOL_FUNCTIONS.get(name)
+
+    if function is None:
+        return {"error": f"Unknown tool: {name}"}
+
+    try:
+        return function(**args)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def local_fast_answer(text):
+    """
+    Handle extremely common commands without contacting Gemini.
+    This makes simple JARVIS commands essentially instantaneous.
+    """
+
+    command = text.lower().strip()
+
+    # Remove the wake-word prefix/punctuation so
+    # "Jarvis, what is the time?" hits the local fast path.
+    for prefix in (
+        "jarvis, ",
+        "jarvis ",
+        "hey jarvis, ",
+        "hey jarvis ",
+        "okay jarvis, ",
+        "okay jarvis ",
+        "ok jarvis, ",
+        "ok jarvis ",
+    ):
+        if command.startswith(prefix):
+            command = command[len(prefix):].strip()
+            break
+
+    if (
+        command == "time"
+        or "what time is it" in command
+        or "what is the time" in command
+        or "what's the time" in command
+        or "tell me the time" in command
+        or "current time" in command
+    ):
+        return get_time()
+
+    if (
+        command == "date"
+        or "what date is it" in command
+        or "what is today's date" in command
+        or "what's today's date" in command
+        or "today's date" in command
+    ):
+        return get_date()
+
+    return None
+
+
+def ask_ai(text):
+    global history
+
+    if not history:
+        load_memory()
+
+    # FAST PATH
+    fast_answer = local_fast_answer(text)
+
+    if fast_answer:
+        print("[JARVIS FAST] Local answer")
+
+        if isinstance(fast_answer, dict):
+            answer = fast_answer.get(
+                "text",
+                json.dumps(fast_answer)
+            )
+        else:
+            answer = str(fast_answer)
+
+        history.append({
+            "role": "user",
+            "text": text
+        })
+
+        history.append({
+            "role": "assistant",
+            "text": answer
+        })
+
+        save_memory()
+
+        return answer.strip()
+
+    history.append({
+        "role": "user",
+        "text": text
+    })
+
+    try:
+        response = client.interactions.create(
+            model=MODEL,
+            system_instruction=SYSTEM_PROMPT,
+            input=text,
+            tools=TOOLS,
+        )
+
+        function_call = None
+
+        for step in response.steps:
+            if getattr(step, "type", None) == "function_call":
+                function_call = step
+                break
+
+        if function_call:
+            tool_name = function_call.name
+
+            try:
+                tool_args = json.loads(
+                    function_call.arguments
+                )
+            except Exception:
+                tool_args = {}
+
+            print(
+                f"[JARVIS TOOL] {tool_name}({tool_args})"
+            )
+
+            result = execute_tool(
+                tool_name,
+                tool_args
+            )
+
+            followup = client.interactions.create(
+                model=MODEL,
+                previous_interaction_id=response.id,
+                tools=TOOLS,
+                input=[
+                    {
+                        "type": "function_result",
+                        "name": tool_name,
+                        "call_id": function_call.id,
+                        "result": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(result),
+                            }
+                        ],
+                    }
+                ],
+            )
+
+            answer = followup.output_text.strip()
+
+        else:
+            answer = response.output_text.strip()
+
+        # Safety limit for spoken responses.
+        # Prevents Orpheus from having to synthesize huge answers.
+        sentences = []
+        current = ""
+
+        for char in answer:
+            current += char
+
+            if char in ".!?":
+                sentences.append(current.strip())
+                current = ""
+
+                if len(sentences) >= 3:
+                    break
+
+        if sentences:
+            answer = " ".join(sentences)
+
+        history.append({
+            "role": "assistant",
+            "text": answer
+        })
+
+        save_memory()
+
+        return answer
+
+    except Exception as e:
+        print(f"❌ AI error: {e}")
+        return "My AI core is temporarily unavailable, Boss."

@@ -1,0 +1,35 @@
+import subprocess
+
+
+VOICE = "en-us+male3"
+SPEED = "190"
+PITCH = "45"
+
+
+class VoiceInfo:
+    name = "eSpeak NG Male"
+
+
+VOICE_INFO = VoiceInfo()
+
+
+def speak(text):
+    text = str(text).strip()
+
+    if not text:
+        return
+
+    print(f"JARVIS: {text}")
+
+    subprocess.run(
+        [
+            "espeak-ng",
+            "-v", VOICE,
+            "-s", SPEED,
+            "-p", PITCH,
+            text,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )

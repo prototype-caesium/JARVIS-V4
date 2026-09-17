@@ -1,0 +1,82 @@
+[
+  {
+    "role": "user",
+    "text": "Turn the lights off."
+  },
+  {
+    "role": "assistant",
+    "text": "Lights are off."
+  },
+  {
+    "role": "user",
+    "text": "Turn the lights off."
+  },
+  {
+    "role": "assistant",
+    "text": "Lights are off."
+  },
+  {
+    "role": "user",
+    "text": "Turn the lights on after 10 seconds."
+  },
+  {
+    "role": "assistant",
+    "text": "Lights will be on in 10 seconds."
+  },
+  {
+    "role": "user",
+    "text": "Turn the lights on after 10 seconds."
+  },
+  {
+    "role": "assistant",
+    "text": "Lights will be on in 10 seconds."
+  },
+  {
+    "role": "user",
+    "text": "hello jarvis"
+  },
+  {
+    "role": "assistant",
+    "text": "Hey, Boss. What\u2019s on the agenda?"
+  },
+  {
+    "role": "user",
+    "text": "are you friend"
+  },
+  {
+    "role": "assistant",
+    "text": "I\u2019m a tool, not a buddy. I\u2019ll do what I\u2019m built for."
+  },
+  {
+    "role": "user",
+    "text": "be my buddy"
+  },
+  {
+    "role": "assistant",
+    "text": "I\u2019m a tool, not a friend. I\u2019ll help you get things done, but I\u2019m not here to replace a buddy."
+  },
+  {
+    "role": "user",
+    "text": "about my systems"
+  },
+  {
+    "role": "assistant",
+    "text": "CPU\u2019s at 52\u202f%. RAM\u2019s 75\u202f% used \u2013 2\u202fGB out of 3. 7."
+  },
+  {
+    "role": "user",
+    "text": "who was napoleon bonaparte"
+  },
+  {
+    "role": "assistant",
+    "text": "Napoleon Bonaparte was a French military leader and emperor who rose to prominence during the French Revolution, ruling France from 1799 to 1814 and briefly in 1815. He expanded French influence across Europe, instituted the Napoleonic Code, and was defeated at Waterloo."
+  },
+  {
+    "role": "user",
+    "text": "computer"
+  },
+  {
+    "role": "assistant",
+    "text": "What about the computer? Specs, performance, or something else?"
+  }
+]

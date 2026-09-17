@@ -1,0 +1,91 @@
+import subprocess
+import atexit
+
+PIPER = "/home/caesium/jarvis-v4/jarvis-venv/bin/piper"
+VOICE = "/home/caesium/jarvis-v4/voices/en_US-hfc_male-medium.onnx"
+
+_piper = None
+
+
+def start_piper():
+    global _piper
+
+    if _piper is not None and _piper.poll() is None:
+        return
+
+    _piper = subprocess.Popen(
+        [
+            PIPER,
+            "--model", VOICE,
+            "--length_scale", "0.65",
+            "--sentence_silence", "0.05",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        bufsize=0,
+    )
+
+
+def stop_piper():
+    global _piper
+
+    if _piper is not None:
+        try:
+            _piper.stdin.close()
+        except Exception:
+            pass
+
+        try:
+            _piper.terminate()
+            _piper.wait(timeout=1)
+        except Exception:
+            pass
+
+        _piper = None
+
+
+def speak(text):
+    global _piper
+
+    print(f"JARVIS: {text}")
+
+    start_piper()
+
+    try:
+        # Send text to the already-loaded Piper process
+        _piper.stdin.write((text.strip() + "\n").encode())
+        _piper.stdin.flush()
+
+        # Read generated WAV from Piper
+        # Piper writes a WAV header followed by PCM data.
+        header = _piper.stdout.read(44)
+
+        if len(header) != 44:
+            raise RuntimeError("Piper did not return valid audio.")
+
+        # WAV header tells us how much audio data remains.
+        import struct
+
+        data_size = struct.unpack("<I", header[40:44])[0]
+        audio_data = _piper.stdout.read(data_size)
+
+        # Play the WAV through aplay
+        player = subprocess.Popen(
+            ["aplay", "-q"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        player.stdin.write(header)
+        player.stdin.write(audio_data)
+        player.stdin.close()
+        player.wait()
+
+    except Exception as e:
+        print(f"❌ Piper error: {e}")
+        stop_piper()
+
+
+atexit.register(stop_piper)

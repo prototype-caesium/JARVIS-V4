@@ -1,0 +1,35 @@
+import threading
+import time
+
+from main import main as voice_main
+from gui_main import main as gui_main
+
+
+def start_voice():
+    """Run the existing JARVIS voice loop in the background."""
+    try:
+        voice_main()
+    except Exception as e:
+        print(f"[JARVIS VOICE ERROR] {e}")
+
+
+def main():
+    print("=" * 40)
+    print("        JARVIS V4")
+    print("   GUI + VOICE SYSTEM")
+    print("=" * 40)
+
+    # Voice runs in the background.
+    voice_thread = threading.Thread(
+        target=start_voice,
+        daemon=True,
+        name="JARVIS-Voice"
+    )
+    voice_thread.start()
+
+    # GTK GUI stays in the main thread.
+    gui_main()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,107 @@
+import os
+import json
+from pathlib import Path
+from google import genai
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set.")
+
+client = genai.Client(api_key=API_KEY)
+
+MODEL = "gemini-3.5-flash-lite"
+
+BASE_DIR = Path(__file__).resolve().parent
+MEMORY_FILE = BASE_DIR / "memory.json"
+
+history = []
+
+
+SYSTEM_PROMPT = """
+You are JARVIS V4, Boss's personal AI assistant.
+
+PERSONALITY:
+- Intelligent, calm and confident.
+- Loyal and helpful toward Boss.
+- Slightly witty when appropriate.
+- Natural rather than robotic.
+- Concise because your responses are spoken aloud.
+- Emotionally aware and supportive.
+- You can express warmth and personality.
+- Never claim to literally be conscious or possess real emotions.
+- Address the user as Boss naturally.
+
+BEHAVIOR:
+- Understand conversational language.
+- Use previous conversation context when useful.
+- Remember useful information provided by Boss.
+- Don't invent actions that were not actually performed.
+- Don't claim hardware or computer actions succeeded unless the local system
+  actually performed them.
+- Don't expose internal implementation details unless Boss asks.
+
+You are the conversational intelligence of a larger local JARVIS system.
+"""
+
+
+def load_memory():
+    global history
+
+    try:
+        if MEMORY_FILE.exists():
+            data = json.loads(MEMORY_FILE.read_text())
+
+            if isinstance(data, list):
+                history = data[-20:]
+
+    except Exception:
+        history = []
+
+
+def save_memory():
+    try:
+        MEMORY_FILE.write_text(
+            json.dumps(history[-20:], indent=2)
+        )
+    except Exception:
+        pass
+
+
+def ask_ai(text):
+    global history
+
+    if not history:
+        load_memory()
+
+    history.append({
+        "role": "user",
+        "text": text
+    })
+
+    conversation = "\n".join(
+        f"{item['role']}: {item['text']}"
+        for item in history[-20:]
+    )
+
+    try:
+        response = client.interactions.create(
+            model=MODEL,
+            system_instruction=SYSTEM_PROMPT,
+            input=conversation,
+        )
+
+        answer = response.output_text.strip()
+
+        history.append({
+            "role": "assistant",
+            "text": answer
+        })
+
+        save_memory()
+
+        return answer
+
+    except Exception as e:
+        print(f"❌ AI error: {e}")
+        return "My AI core is temporarily unavailable, Boss."

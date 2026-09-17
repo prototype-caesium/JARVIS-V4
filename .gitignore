@@ -1,0 +1,9 @@
+.env
+*.env
+jarvis-venv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.onnx
+*.task

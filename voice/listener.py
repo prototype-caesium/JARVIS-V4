@@ -1,0 +1,114 @@
+import sounddevice as sd
+import speech_recognition as sr
+import numpy as np
+import io
+import wave
+import time
+
+# Microphone
+DEVICE = sd.default.device[0]
+SAMPLE_RATE = int(sd.query_devices(DEVICE)["default_samplerate"])
+
+# Speed / detection settings
+BLOCK_SIZE = 1024
+SILENCE_LIMIT = 0.6
+MAX_RECORDING = 6
+THRESHOLD = 1200
+
+
+def listen(show_text=True):
+    """
+    Listen to the microphone and convert speech to text.
+
+    show_text=True:
+        Prints recognized speech.
+
+    show_text=False:
+        Used for silent wake-word listening.
+    """
+
+    if show_text:
+        print("🎤 Listening...")
+
+    frames = []
+    speaking = False
+    silence_start = None
+    start_time = time.time()
+
+    with sd.InputStream(
+        samplerate=SAMPLE_RATE,
+        channels=1,
+        dtype="int16",
+        blocksize=BLOCK_SIZE,
+        device=DEVICE
+    ) as stream:
+
+        while True:
+            data, overflowed = stream.read(BLOCK_SIZE)
+
+            audio = np.asarray(data, dtype=np.int16)
+            volume = np.max(np.abs(audio))
+
+            # Speech started
+            if volume > THRESHOLD:
+                speaking = True
+                silence_start = None
+
+            # Record after speech starts
+            if speaking:
+                frames.append(audio.copy())
+
+                # Detect silence
+                if volume <= THRESHOLD:
+                    if silence_start is None:
+                        silence_start = time.time()
+
+                    elif time.time() - silence_start >= SILENCE_LIMIT:
+                        break
+
+            # Safety timeout
+            if time.time() - start_time >= MAX_RECORDING:
+                break
+
+    # Nothing detected
+    if not frames:
+        return ""
+
+    # Combine audio
+    audio = np.concatenate(frames)
+
+    # Convert to WAV in memory
+    buffer = io.BytesIO()
+
+    with wave.open(buffer, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(SAMPLE_RATE)
+        wav.writeframes(audio.tobytes())
+
+    buffer.seek(0)
+
+    # Google Speech Recognition
+    recognizer = sr.Recognizer()
+
+    with sr.AudioFile(buffer) as source:
+        audio_data = recognizer.record(source)
+
+    try:
+        text = recognizer.recognize_google(audio_data)
+
+        if show_text:
+            print(f"YOU: {text}")
+
+        return text
+
+    except sr.UnknownValueError:
+        if show_text:
+            print("❌ Couldn't understand.")
+
+        return ""
+
+    except sr.RequestError as e:
+        print(f"❌ Google recognition error: {e}")
+        return ""
+

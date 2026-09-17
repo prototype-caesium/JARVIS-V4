@@ -1,0 +1,52 @@
+from core.hardware_router import handle_hardware
+from core.diagnostics import handle_diagnostics
+from core.system_router import handle_system
+from core.ai import ask_ai
+
+
+EXIT_COMMANDS = {
+    "exit",
+    "quit",
+    "shutdown",
+    "goodbye",
+}
+
+
+def process_command(command):
+    command = command.lower().strip()
+
+    if not command:
+        return ""
+
+    # -------------------------------------------------
+    # 1. HARDWARE
+    # -------------------------------------------------
+
+    hardware_response = handle_hardware(command)
+
+    if hardware_response:
+        return hardware_response
+
+    # -------------------------------------------------
+    # 2. DIAGNOSTICS
+    # -------------------------------------------------
+
+    diagnostic_response = handle_diagnostics(command)
+
+    if diagnostic_response:
+        return diagnostic_response
+
+    # -------------------------------------------------
+    # 3. LOCAL SYSTEM
+    # -------------------------------------------------
+
+    system_response = handle_system(command)
+
+    if system_response:
+        return system_response
+
+    # -------------------------------------------------
+    # 4. CONVERSATIONAL AI
+    # -------------------------------------------------
+
+    return ask_ai(command)

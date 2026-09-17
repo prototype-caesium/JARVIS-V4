@@ -1,0 +1,33 @@
+import subprocess
+
+PIPER = "/home/caesium/jarvis-v4/jarvis-venv/bin/piper"
+VOICE = "/home/caesium/jarvis-v4/voices/en_US-hfc_male-medium.onnx"
+
+
+def speak(text):
+    print(f"JARVIS: {text}")
+
+    piper = subprocess.Popen(
+        [
+            PIPER,
+            "--model", VOICE,
+            "--length_scale", "0.65",
+            "--sentence_silence", "0.05",
+        ],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+
+    aplay = subprocess.Popen(
+        ["aplay", "-q"],
+        stdin=piper.stdout,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    piper.stdin.write((text + "\n").encode())
+    piper.stdin.close()
+
+    aplay.wait()
+    piper.wait()

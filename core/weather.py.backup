@@ -1,0 +1,225 @@
+import json
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+from core.config import WEATHER_CITY
+
+
+GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
+WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+
+
+def _get_json(url, params):
+    query = urlencode(params)
+
+    request = Request(
+        f"{url}?{query}",
+        headers={
+            "User-Agent": "JARVIS-V4/1.0"
+        },
+    )
+
+    with urlopen(request, timeout=5) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def get_coordinates():
+    data = _get_json(
+        GEOCODING_URL,
+        {
+            "name": WEATHER_CITY,
+            "count": 1,
+            "language": "en",
+            "format": "json",
+        },
+    )
+
+    results = data.get("results", [])
+
+    if not results:
+        return None
+
+    place = results[0]
+
+    return {
+        "latitude": place["latitude"],
+        "longitude": place["longitude"],
+        "name": place.get("name", WEATHER_CITY),
+        "country": place.get("country", ""),
+    }
+
+
+def get_weather():
+    location = get_coordinates()
+
+    if not location:
+        return None
+
+    data = _get_json(
+        WEATHER_URL,
+        {
+            "latitude": location["latitude"],
+            "longitude": location["longitude"],
+            "current": (
+                "temperature_2m,"
+                "relative_humidity_2m,"
+                "apparent_temperature,"
+                "precipitation,"
+                "weather_code,"
+                "wind_speed_10m"
+            ),
+            "daily": (
+                "weather_code,"
+                "temperature_2m_max,"
+                "temperature_2m_min,"
+                "precipitation_probability_max"
+            ),
+            "forecast_days": 1,
+            "timezone": "auto",
+        },
+    )
+
+    return {
+        "location": location,
+        "current": data.get("current", {}),
+        "daily": data.get("daily", {}),
+    }
+
+
+def weather_description(code):
+    descriptions = {
+        0: "clear skies",
+        1: "mainly clear skies",
+        2: "partly cloudy skies",
+        3: "overcast skies",
+        45: "foggy conditions",
+        48: "foggy conditions",
+        51: "light drizzle",
+        53: "moderate drizzle",
+        55: "heavy drizzle",
+        61: "light rain",
+        63: "moderate rain",
+        65: "heavy rain",
+        71: "light snow",
+        73: "moderate snow",
+        75: "heavy snow",
+        80: "light rain showers",
+        81: "moderate rain showers",
+        82: "heavy rain showers",
+        95: "a thunderstorm",
+        96: "a thunderstorm with hail",
+        99: "a thunderstorm with heavy hail",
+    }
+
+    return descriptions.get(code, "unknown conditions")
+
+
+def current_weather_report():
+    data = get_weather()
+
+    if not data:
+        return "I couldn't retrieve the weather right now, Boss."
+
+    current = data["current"]
+    location = data["location"]
+
+    temperature = current.get("temperature_2m")
+    apparent = current.get("apparent_temperature")
+    humidity = current.get("relative_humidity_2m")
+    wind = current.get("wind_speed_10m")
+    code = current.get("weather_code")
+
+    description = weather_description(code)
+
+    return (
+        f"In {location['name']}, it is {temperature:.0f} degrees Celsius "
+        f"with {description}. "
+        f"It feels like {apparent:.0f} degrees. "
+        f"Humidity is {humidity} percent and wind speed is "
+        f"{wind:.0f} kilometers per hour."
+    )
+
+
+def rain_report():
+    data = get_weather()
+
+    if not data:
+        return "I couldn't retrieve the rain forecast right now, Boss."
+
+    daily = data["daily"]
+
+    probability = daily.get("precipitation_probability_max", [None])[0]
+
+    if probability is None:
+        return "I couldn't determine the rain probability right now, Boss."
+
+    if probability >= 70:
+        return f"There is a {probability} percent chance of rain today, Boss."
+
+    if probability >= 40:
+        return f"There is a {probability} percent chance of rain today."
+
+    return f"The chance of rain today is {probability} percent."
+
+
+def forecast_report():
+    data = get_weather()
+
+    if not data:
+        return "I couldn't retrieve the forecast right now, Boss."
+
+    current = data["current"]
+    daily = data["daily"]
+
+    location = data["location"]
+
+    code = current.get("weather_code")
+    maximum = daily.get("temperature_2m_max", [None])[0]
+    minimum = daily.get("temperature_2m_min", [None])[0]
+
+    probability = daily.get(
+        "precipitation_probability_max",
+        [None],
+    )[0]
+
+    description = weather_description(code)
+
+    result = (
+        f"Today's forecast for {location['name']}: "
+        f"{description}, with a high of {maximum:.0f} degrees "
+        f"and a low of {minimum:.0f} degrees Celsius."
+    )
+
+    if probability is not None:
+        result += f" Rain probability is {probability} percent."
+
+    return result
+
+
+def handle_weather(text):
+    command = text.lower().strip()
+
+    weather_words = (
+        "weather",
+        "temperature",
+        "forecast",
+        "outside",
+    )
+
+    rain_words = (
+        "will it rain",
+        "is it going to rain",
+        "chance of rain",
+        "rain today",
+    )
+
+    if any(phrase in command for phrase in rain_words):
+        return rain_report()
+
+    if "forecast" in command:
+        return forecast_report()
+
+    if any(word in command for word in weather_words):
+        return current_weather_report()
+
+    return None

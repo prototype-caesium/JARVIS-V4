@@ -1,0 +1,247 @@
+/* JARVIS V4 command-center theme
+   Dark glass/metal, cyan energy accents, amber/red warning states.
+   Kept flat (no heavy gradients) so it stays cheap to composite on
+   integrated graphics. */
+
+window.jarvis-window {
+    background-color: #050809;
+    color: #cfeaf5;
+}
+
+.topbar {
+    background-color: #080d0f;
+    border-bottom: 1px solid rgba(79, 216, 255, 0.16);
+    padding: 8px 18px;
+}
+
+.brand-title {
+    font-family: monospace;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: #4fd8ff;
+}
+
+.brand-sub {
+    font-family: monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #4a7a8c;
+}
+
+.status-online {
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #37e6a0;
+}
+
+.metric-chip {
+    background-color: rgba(79, 216, 255, 0.05);
+    border: 1px solid rgba(79, 216, 255, 0.18);
+    border-radius: 2px;
+    padding: 3px 10px;
+    font-family: monospace;
+    font-size: 10px;
+    color: #8fd9ee;
+}
+
+.clock-chip {
+    font-family: monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #cfeaf5;
+}
+
+.sidebar {
+    background-color: #060a0c;
+    border-right: 1px solid rgba(79, 216, 255, 0.14);
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-left: 2px solid transparent;
+    border-radius: 0px;
+    padding: 8px 0px;
+}
+
+.nav-btn:hover {
+    background-color: rgba(79, 216, 255, 0.07);
+}
+
+.nav-btn.active {
+    background-color: rgba(79, 216, 255, 0.12);
+    border-left: 2px solid #4fd8ff;
+}
+
+.nav-label {
+    font-family: monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #6fa9bd;
+}
+
+.statuspanel {
+    background-color: #060a0c;
+    border-left: 1px solid rgba(79, 216, 255, 0.14);
+    padding: 14px;
+}
+
+.panel-title {
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #4fd8ff;
+}
+
+.status-row {
+    padding: 5px 0px;
+    border-bottom: 1px solid rgba(79, 216, 255, 0.06);
+}
+
+.status-name {
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #7fb6c9;
+}
+
+.status-value {
+    font-family: monospace;
+    font-size: 10px;
+    color: #cfeaf5;
+}
+
+.dot-ok { color: #37e6a0; }
+.dot-warn { color: #ffb020; }
+.dot-error { color: #ff4d4d; }
+.dot-off { color: #35505a; }
+
+.console {
+    background-color: #05090a;
+    border-top: 1px solid rgba(79, 216, 255, 0.14);
+    padding: 10px 18px;
+}
+
+.console-scroll {
+    background: transparent;
+}
+
+.console-you {
+    font-family: monospace;
+    font-size: 11px;
+    color: #8fd9ee;
+}
+
+.console-jarvis {
+    font-family: monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4fd8ff;
+}
+
+.console-entry {
+    background-color: rgba(79, 216, 255, 0.04);
+    border: 1px solid rgba(79, 216, 255, 0.18);
+    border-radius: 2px;
+    color: #cfeaf5;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 6px 10px;
+}
+
+.console-entry:focus {
+    border-color: #4fd8ff;
+}
+
+.mic-btn {
+    background-color: rgba(79, 216, 255, 0.08);
+    border: 1px solid #2a5866;
+    border-radius: 999px;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.mic-btn:hover {
+    background-color: rgba(79, 216, 255, 0.16);
+}
+
+.mic-btn.listening {
+    background-color: rgba(79, 216, 255, 0.28);
+    border-color: #4fd8ff;
+}
+
+.send-btn {
+    background-color: rgba(79, 216, 255, 0.1);
+    border: 1px solid #2a5866;
+    border-radius: 2px;
+    color: #cfeaf5;
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 14px;
+}
+
+.send-btn:hover {
+    background-color: rgba(79, 216, 255, 0.2);
+}
+
+.view-title {
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #4fd8ff;
+}
+
+.view-sub {
+    font-family: monospace;
+    font-size: 10px;
+    color: #6fa9bd;
+}
+
+.panel-card {
+    background-color: rgba(79, 216, 255, 0.03);
+    border: 1px solid rgba(79, 216, 255, 0.15);
+    border-radius: 2px;
+    padding: 14px;
+}
+
+.warn-text { color: #ff8a3d; }
+.error-text { color: #ff4d4d; }
+.ok-text { color: #37e6a0; }
+
+.ctrl-btn {
+    background-color: rgba(79, 216, 255, 0.08);
+    border: 1px solid #2a5866;
+    border-radius: 2px;
+    color: #cfeaf5;
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+}
+
+.ctrl-btn:hover {
+    background-color: rgba(79, 216, 255, 0.18);
+}
+
+.log-text {
+    font-family: monospace;
+    font-size: 10px;
+    color: #9fd3e6;
+    background-color: #05090a;
+}
+
+scrollbar {
+    background-color: transparent;
+}
+
+scrollbar slider {
+    background-color: rgba(79, 216, 255, 0.25);
+    border-radius: 4px;
+    min-width: 4px;
+    min-height: 4px;
+}

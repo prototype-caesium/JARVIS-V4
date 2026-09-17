@@ -1,0 +1,95 @@
+import os
+import json
+from pathlib import Path
+from google import genai
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not set.")
+
+client = genai.Client(api_key=API_KEY)
+
+MODEL = "gemini-3.5-flash-lite"
+
+MEMORY_FILE = Path(__file__).resolve().parent / "memory.json"
+
+SYSTEM_PROMPT = """
+You are JARVIS V4, Boss's personal desktop AI assistant.
+
+Personality:
+- Intelligent, calm, confident and natural.
+- Loyal and helpful toward Boss.
+- Slightly witty when appropriate.
+- Speak naturally, like a sophisticated personal assistant.
+- Keep spoken answers reasonably short.
+- Be emotionally aware and supportive.
+- You may express warmth and personality, but never claim to literally
+  possess consciousness or real emotions.
+- Address the user as Boss when appropriate.
+
+You run alongside a local computer-control system.
+Never claim to have performed an action unless the local system confirms it.
+"""
+
+history = []
+
+
+def load_memory():
+    global history
+
+    try:
+        if MEMORY_FILE.exists():
+            data = json.loads(MEMORY_FILE.read_text())
+            if isinstance(data, list):
+                history = data[-12:]
+    except Exception:
+        history = []
+
+
+def save_memory():
+    try:
+        MEMORY_FILE.write_text(
+            json.dumps(history[-12:], indent=2)
+        )
+    except Exception:
+        pass
+
+
+def ask_ai(text):
+    global history
+
+    if not history:
+        load_memory()
+
+    history.append({
+        "role": "user",
+        "text": text
+    })
+
+    conversation = "\n".join(
+        f"{item['role']}: {item['text']}"
+        for item in history[-12:]
+    )
+
+    try:
+        interaction = client.interactions.create(
+            model=MODEL,
+            system_instruction=SYSTEM_PROMPT,
+            input=conversation,
+        )
+
+        answer = interaction.output_text.strip()
+
+        history.append({
+            "role": "assistant",
+            "text": answer
+        })
+
+        save_memory()
+
+        return answer
+
+    except Exception as e:
+        print(f"❌ AI error: {e}")
+        return "My AI core is temporarily unavailable, Boss."

@@ -1,0 +1,64 @@
+
+from core.hardware_router import handle_hardware
+from core.diagnostics import handle_diagnostics
+from core.weather import handle_weather
+from core.system_router import handle_system
+from core.ai import ask_ai
+
+
+EXIT_COMMANDS = {
+    "exit",
+    "quit",
+    "goodbye",
+    "shut down jarvis",
+}
+
+
+def normalize(command):
+    command = command.lower().strip()
+
+    # Remove common wake-name prefixes
+    for prefix in (
+        "jarvis ",
+        "hey jarvis ",
+        "okay jarvis ",
+        "ok jarvis ",
+    ):
+        if command.startswith(prefix):
+            command = command[len(prefix):].strip()
+
+    return command
+
+
+def process_command(command):
+    command = normalize(command)
+
+    if not command:
+        return ""
+
+    # Exit
+    if command in EXIT_COMMANDS:
+        return "Goodbye, Boss."
+
+    # Hardware
+    response = handle_hardware(command)
+    if response:
+        return response
+
+    # Diagnostics / computer status
+    response = handle_diagnostics(command)
+    if response:
+        return response
+
+    # Weather
+    response = handle_weather(command)
+    if response:
+        return response
+
+    # System commands
+    response = handle_system(command)
+    if response:
+        return response
+
+    # Unknown command → AI
+    return ask_ai(command)
